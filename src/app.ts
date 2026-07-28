@@ -12,7 +12,7 @@ import './queue/email.events.js';
 dotenv.config();
 
 const app = express();
-const PORT = process.env.PORT || 5000;
+const PORT = process.env.PORT || 5001;
 
 logger.info(`Server environment (NODE_ENV) resolved as: ${process.env.NODE_ENV}`);
 
