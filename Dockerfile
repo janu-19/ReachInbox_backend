@@ -21,7 +21,7 @@ RUN npx prisma generate
 RUN npm run build
 
 # Expose backend REST port
-EXPOSE 5000
+EXPOSE 5001
 
 # Run schema migrations and boot Express server
 CMD ["sh", "-c", "npx prisma db push && node dist/app.js"]
