@@ -30,6 +30,6 @@ app.use('/api', apiRouter);
 // Global error handling middleware
 app.use(errorHandler);
 
-app.listen(PORT, () => {
+app.listen(Number(PORT), '0.0.0.0', () => {
   logger.info(`Express server running on port ${PORT}`);
 });
