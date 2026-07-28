@@ -42,6 +42,8 @@ export const addSender = async (req: Request, res: Response, next: NextFunction)
     const testResult = await testConnection(tempAccount);
     if (!testResult.success) {
       const errCode = (testResult.error as any)?.code;
+      const errMessage = (testResult.error as any)?.message || '';
+
       const isNetworkError = [
         'ETIMEDOUT',
         'ECONNREFUSED',
@@ -52,17 +54,22 @@ export const addSender = async (req: Request, res: Response, next: NextFunction)
         'ERR_SOCKET_CONNECTION_TIMEOUT',
         'ENOTFOUND',
         'EAI_AGAIN'
-      ].includes(errCode);
+      ].includes(errCode) || 
+      errMessage.toLowerCase().includes('timeout') ||
+      errMessage.toLowerCase().includes('connection') ||
+      errMessage.toLowerCase().includes('dns') ||
+      errMessage.toLowerCase().includes('getaddrinfo') ||
+      errMessage.toLowerCase().includes('unreachable');
 
       if (!isNetworkError && skipVerify !== true) {
         return res.status(400).json({
           error: 'SMTPConnectionError',
           message: 'SMTP credentials test failed. Please verify configurations, hostname, port, and credentials.',
-          details: (testResult.error as any)?.message || testResult.error,
+          details: errMessage || testResult.error,
         });
       }
 
-      logger.warn(`SMTP connection test failed for ${email} with error code ${errCode}, but proceeding due to ${isNetworkError ? 'network/hosting restriction' : 'skipVerify flag'}.`);
+      logger.warn(`SMTP connection test failed for ${email} with error code ${errCode} / message "${errMessage}", but proceeding due to ${isNetworkError ? 'network/hosting restriction' : 'skipVerify flag'}.`);
     }
 
     const senderAccount = await prisma.senderAccount.create({
