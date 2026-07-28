@@ -4,7 +4,7 @@
   "description": "ReachInbox Email Scheduler Backend Service",
   "main": "dist/app.js",
   "scripts": {
-    "build": "tsc",
+    "build": "prisma generate && tsc",
     "start": "node dist/app.js",
     "dev": "tsx watch src/app.ts",
     "prisma:generate": "prisma generate",
