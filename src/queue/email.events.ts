@@ -7,6 +7,10 @@ export const emailQueueEvents = new QueueEvents(EMAIL_QUEUE_NAME, {
   connection: redisConfig,
 });
 
+emailQueueEvents.on('error', (err) => {
+  logger.error('Email Queue Events Connection Error:', err);
+});
+
 emailQueueEvents.on('waiting', ({ jobId }) => {
   logger.info(`Job ${jobId} is waiting in the queue.`);
 });

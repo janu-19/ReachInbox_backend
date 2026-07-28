@@ -15,3 +15,7 @@ export const emailQueue = new Queue(EMAIL_QUEUE_NAME, {
     removeOnFail: false, // Keep failed jobs registered so we can audit failures
   },
 });
+
+emailQueue.on('error', (err) => {
+  console.error('Email Queue Connection Error:', err);
+});
