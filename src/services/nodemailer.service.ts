@@ -47,13 +47,13 @@ export const createTransporter = async (account: SenderAccount) => {
   });
 };
 
-export const testConnection = async (account: SenderAccount): Promise<boolean> => {
+export const testConnection = async (account: SenderAccount): Promise<{ success: boolean; error?: any }> => {
   try {
     const transporter = await createTransporter(account);
     await transporter.verify();
-    return true;
+    return { success: true };
   } catch (error) {
     logger.error(`SMTP connection test failed for sender account: ${account.email}`, error);
-    return false;
+    return { success: false, error };
   }
 };
