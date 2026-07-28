@@ -42,7 +42,7 @@ export const addSender = async (req: Request, res: Response, next: NextFunction)
     const testResult = await testConnection(tempAccount);
     if (!testResult.success) {
       const errCode = (testResult.error as any)?.code;
-      const errMessage = (testResult.error as any)?.message || '';
+      const errMessage = (testResult.error as any)?.message || (typeof testResult.error === 'string' ? testResult.error : '') || String(testResult.error || '');
 
       const isNetworkError = [
         'ETIMEDOUT',
