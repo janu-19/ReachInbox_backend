@@ -83,9 +83,27 @@ export const getEmails = async (req: Request, res: Response, next: NextFunction)
     }
 
     if (search) {
-      where.recipient = {
-        contains: search,
-      };
+      where.OR = [
+        {
+          recipient: {
+            contains: search,
+          },
+        },
+        {
+          campaign: {
+            name: {
+              contains: search,
+            },
+          },
+        },
+        {
+          campaign: {
+            subject: {
+              contains: search,
+            },
+          },
+        },
+      ];
     }
 
     const [emails, total] = await Promise.all([

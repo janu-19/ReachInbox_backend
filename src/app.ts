@@ -43,6 +43,11 @@ app.get('/health', (req, res) => {
   res.json({ status: 'ok', version: 'v1.0.1-bypass-timeout', timestamp: new Date().toISOString() });
 });
 
+// Root path handler to satisfy default Railway deployment health check
+app.get('/', (req, res) => {
+  res.json({ status: 'ok', message: 'ReachInbox Backend Service API is running.' });
+});
+
 // Mount modular API routers
 app.use('/api', apiRouter);
 
