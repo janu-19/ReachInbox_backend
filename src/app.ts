@@ -39,9 +39,9 @@ app.use('/api', apiRouter);
 // Global error handling middleware
 app.use(errorHandler);
 
-// Listen on all network interfaces (IPv4 & IPv6 dual-stack)
-app.listen(PORT, () => {
-  logger.info(`Express server running on port ${PORT}`);
+// Listen strictly on IPv4 wildcard interface 0.0.0.0 so Docker eth0 accepts incoming Railway proxy connections
+app.listen(PORT, '0.0.0.0', () => {
+  logger.info(`Express server running on 0.0.0.0:${PORT}`);
 
   // Defer initialization of background queue worker & event listeners AFTER server is bound & listening
   setImmediate(async () => {
