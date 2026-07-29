@@ -49,27 +49,43 @@ app.use('/api', apiRouter);
 // Global error handling middleware
 app.use(errorHandler);
 
-// Listen strictly on IPv4 wildcard interface 0.0.0.0 so Docker eth0 accepts incoming Railway proxy connections
-const server = app.listen(PORT, '0.0.0.0', () => {
-  logger.info(`Express server running on 0.0.0.0:${PORT}`);
+// Bind Express server to primary PORT and common Railway target ports (5001, 8080, 3000, 80)
+const portsToListen = Array.from(new Set([PORT, 5001, 8080, 3000, 80]));
 
-  // Isolated background worker initialization (prevent background errors from killing Express)
-  setImmediate(async () => {
-    logger.info('Attempting to initialize background email worker module...');
-    try {
-      await import('./workers/email.worker.js');
-      logger.info('Email worker module loaded successfully.');
-    } catch (err) {
-      logger.error('Email worker module import failed (REST API remains operational):', err);
-    }
+portsToListen.forEach((p, idx) => {
+  try {
+    const srv = app.listen(p, '0.0.0.0', () => {
+      logger.info(`Express server actively listening on 0.0.0.0:${p}`);
+      
+      // On primary server startup, trigger deferred background worker loading
+      if (idx === 0) {
+        setImmediate(async () => {
+          logger.info('Attempting to initialize background email worker module...');
+          try {
+            await import('./workers/email.worker.js');
+            logger.info('Email worker module loaded successfully.');
+          } catch (err) {
+            logger.error('Email worker module import failed (REST API remains operational):', err);
+          }
 
-    try {
-      await import('./queue/email.events.js');
-      logger.info('Queue events module loaded successfully.');
-    } catch (err) {
-      logger.error('Queue events module import failed (REST API remains operational):', err);
-    }
-  });
+          try {
+            await import('./queue/email.events.js');
+            logger.info('Queue events module loaded successfully.');
+          } catch (err) {
+            logger.error('Queue events module import failed (REST API remains operational):', err);
+          }
+        });
+      }
+    });
+
+    srv.on('error', (err: any) => {
+      if (err.code !== 'EADDRINUSE') {
+        logger.warn(`Port ${p} listener notice: ${err.message}`);
+      }
+    });
+  } catch (err) {
+    // Ignore duplicate binding errors
+  }
 });
 
 export default app;

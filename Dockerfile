@@ -20,8 +20,8 @@ RUN npx prisma generate
 # Compile TypeScript to JavaScript
 RUN npm run build
 
-# Expose backend REST port
-EXPOSE 5001
+# Expose backend REST ports
+EXPOSE 5001 8080 3000
 
 # Run schema migrations and boot Express server
 CMD ["sh", "-c", "npx prisma db push && node dist/app.js"]
