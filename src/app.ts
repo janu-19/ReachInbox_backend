@@ -5,10 +5,6 @@ import apiRouter from './routes/index.js';
 import { errorHandler } from './middleware/errorHandler.js';
 import { logger } from './utils/logger.js';
 
-// Initialize background queue worker and events monitoring
-import './workers/email.worker.js';
-import './queue/email.events.js';
-
 dotenv.config();
 
 const app = express();
@@ -46,4 +42,15 @@ app.use(errorHandler);
 // Listen on all network interfaces (IPv4 & IPv6 dual-stack)
 app.listen(PORT, () => {
   logger.info(`Express server running on port ${PORT}`);
+
+  // Defer initialization of background queue worker & event listeners AFTER server is bound & listening
+  setImmediate(async () => {
+    try {
+      await import('./workers/email.worker.js');
+      await import('./queue/email.events.js');
+      logger.info('Background email queue worker and events initialized.');
+    } catch (err) {
+      logger.error('Failed to initialize background email worker:', err);
+    }
+  });
 });
