@@ -111,7 +111,7 @@ export const getEmails = async (req: Request, res: Response, next: NextFunction)
         where,
         skip,
         take: limit,
-        orderBy: { scheduledTime: 'asc' },
+        orderBy: { createdAt: 'desc' },
         include: {
           campaign: {
             select: {

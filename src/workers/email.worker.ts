@@ -8,7 +8,9 @@ export const emailWorker = new Worker(
   EMAIL_QUEUE_NAME,
   async (job: Job<{ emailId: string }>, token?: string) => {
     const { emailId } = job.data;
-    logger.info(`Worker processing job ${job.id} for email ID ${emailId}`);
+    const attempt = job.attemptsMade + 1;
+    const maxAttempts = job.opts.attempts || 1;
+    logger.info(`Worker processing job ${job.id} (Attempt ${attempt}/${maxAttempts}) for email ID ${emailId}`);
     
     // Call refactored central email dispatch service method with token and job parameters
     await sendScheduledEmail(emailId, token, job);
@@ -16,6 +18,9 @@ export const emailWorker = new Worker(
   {
     connection: redisConfig,
     concurrency: parseInt(process.env.WORKER_CONCURRENCY || '5'),
+    lockDuration: 30000,
+    stalledInterval: 30000,
+    maxStalledCount: 3,
   }
 );
 

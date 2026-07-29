@@ -74,6 +74,13 @@ portsToListen.forEach((p, idx) => {
           } catch (err) {
             logger.error('Queue events module import failed (REST API remains operational):', err);
           }
+
+          try {
+            const { recoverPendingEmails } = await import('./services/recovery.service.js');
+            await recoverPendingEmails();
+          } catch (err) {
+            logger.error('Email recovery service execution failed:', err);
+          }
         });
       }
     });

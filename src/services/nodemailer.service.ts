@@ -3,6 +3,21 @@ import { SenderAccount } from '@prisma/client';
 import { logger } from '../utils/logger.js';
 
 export const createTransporter = async (account: SenderAccount) => {
+  logger.info(`Entered createTransporter(). BYPASS_SMTP_VERIFICATION=${process.env.BYPASS_SMTP_VERIFICATION}`);
+
+  if (process.env.BYPASS_SMTP_VERIFICATION === 'true') {
+    logger.info('[TRANSPORTER] BYPASS_SMTP_VERIFICATION is enabled. Using simulated mock SMTP transport.');
+    return {
+      sendMail: async (options: any) => {
+        logger.info(`[SIMULATED SMTP] Delivered mail to ${options.to} (Subject: ${options.subject})`);
+        return {
+          messageId: `mock-msg-${Date.now()}-${Math.random().toString(36).substring(7)}`,
+        };
+      },
+      verify: async () => true,
+    } as any;
+  }
+
   if (account.provider === 'ETHEREAL') {
     let user = account.smtpUser;
     let pass = account.smtpPass;
@@ -24,6 +39,8 @@ export const createTransporter = async (account: SenderAccount) => {
       }
     }
 
+    logger.info(`[TRANSPORTER] Using Ethereal SMTP: host=smtp.ethereal.email, port=587, user=${user}`);
+
     return nodemailer.createTransport({
       host: 'smtp.ethereal.email',
       port: 587,
@@ -32,8 +49,13 @@ export const createTransporter = async (account: SenderAccount) => {
         user,
         pass,
       },
+      connectionTimeout: 10000,
+      greetingTimeout: 10000,
+      socketTimeout: 15000,
     });
   }
+
+  logger.info(`[TRANSPORTER] Using Generic SMTP: host=${account.smtpHost}, port=${account.smtpPort}, user=${account.smtpUser}`);
 
   // Generic SMTP connection settings (covers Gmail, Outlook, and customized servers)
   return nodemailer.createTransport({
@@ -44,6 +66,9 @@ export const createTransporter = async (account: SenderAccount) => {
       user: account.smtpUser,
       pass: account.smtpPass,
     },
+    connectionTimeout: 10000,
+    greetingTimeout: 10000,
+    socketTimeout: 15000,
   });
 };
 
