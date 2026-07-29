@@ -42,11 +42,19 @@ export const redisClient = new Redis(process.env.REDIS_URL || 'redis://127.0.0.1
   ...(isSecure ? { tls: { rejectUnauthorized: false } } : {}),
 });
 
-redisClient.on('error', (err) => {
-  logger.warn(`Redis Client Connection Warning (${host}:${port}): ${err.message}`);
+redisClient.on('connect', () => {
+  logger.info(`Redis socket connecting to ${host}:${port}...`);
 });
 
-redisClient.on('connect', () => {
-  logger.info(`Successfully connected to Redis instance at ${host}:${port}`);
+redisClient.on('ready', () => {
+  logger.info(`Redis client is READY and authenticated at ${host}:${port}`);
+});
+
+redisClient.on('error', (err) => {
+  logger.warn(`Redis Client Warning (${host}:${port}): ${err.message}`);
+});
+
+redisClient.on('close', () => {
+  logger.info('Redis connection closed.');
 });
 

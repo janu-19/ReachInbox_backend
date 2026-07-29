@@ -7,10 +7,20 @@ import { logger } from './utils/logger.js';
 
 dotenv.config();
 
+// Global process exception safety handlers
+process.on('unhandledRejection', (reason) => {
+  logger.error('Unhandled Promise Rejection caught at process level:', reason);
+});
+
+process.on('uncaughtException', (err) => {
+  logger.error('Uncaught Exception caught at process level:', err);
+});
+
 const app = express();
 const PORT = process.env.PORT ? parseInt(process.env.PORT, 10) : 5001;
 
 logger.info(`Server environment (NODE_ENV) resolved as: ${process.env.NODE_ENV}`);
+logger.info(`REDIS_URL configured in environment: ${Boolean(process.env.REDIS_URL)}`);
 
 // Permissive CORS middleware for cross-origin frontend requests & Railway probes
 app.use(cors({
@@ -27,7 +37,7 @@ app.get(['/', '/health', '/api/health'], (req, res) => {
   res.status(200).json({
     status: 'ok',
     service: 'ReachInbox Backend Service API',
-    version: '1.0.2',
+    version: '1.0.4',
     port: PORT,
     timestamp: new Date().toISOString(),
   });
@@ -40,17 +50,26 @@ app.use('/api', apiRouter);
 app.use(errorHandler);
 
 // Listen strictly on IPv4 wildcard interface 0.0.0.0 so Docker eth0 accepts incoming Railway proxy connections
-app.listen(PORT, '0.0.0.0', () => {
+const server = app.listen(PORT, '0.0.0.0', () => {
   logger.info(`Express server running on 0.0.0.0:${PORT}`);
 
-  // Defer initialization of background queue worker & event listeners AFTER server is bound & listening
+  // Isolated background worker initialization (prevent background errors from killing Express)
   setImmediate(async () => {
+    logger.info('Attempting to initialize background email worker module...');
     try {
       await import('./workers/email.worker.js');
-      await import('./queue/email.events.js');
-      logger.info('Background email queue worker and events initialized.');
+      logger.info('Email worker module loaded successfully.');
     } catch (err) {
-      logger.error('Failed to initialize background email worker:', err);
+      logger.error('Email worker module import failed (REST API remains operational):', err);
+    }
+
+    try {
+      await import('./queue/email.events.js');
+      logger.info('Queue events module loaded successfully.');
+    } catch (err) {
+      logger.error('Queue events module import failed (REST API remains operational):', err);
     }
   });
 });
+
+export default app;
