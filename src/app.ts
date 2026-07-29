@@ -12,40 +12,29 @@ import './queue/email.events.js';
 dotenv.config();
 
 const app = express();
-const PORT = process.env.PORT || 5001;
+const PORT = process.env.PORT ? parseInt(process.env.PORT, 10) : 5001;
 
 logger.info(`Server environment (NODE_ENV) resolved as: ${process.env.NODE_ENV}`);
 
-const allowedOrigins = [
-  'http://localhost:3000',
-  'http://localhost:5173',
-  'https://reachinbox-frontend-6ckk.onrender.com'
-];
-if (process.env.FRONTEND_URL) {
-  allowedOrigins.push(process.env.FRONTEND_URL);
-}
-
+// Permissive CORS middleware for cross-origin frontend requests & Railway probes
 app.use(cors({
-  origin: (origin, callback) => {
-    if (!origin) return callback(null, true);
-    if (allowedOrigins.indexOf(origin) !== -1 || process.env.NODE_ENV !== 'production') {
-      return callback(null, true);
-    } else {
-      return callback(new Error('Not allowed by CORS'));
-    }
-  },
+  origin: true,
   credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept'],
 }));
+
 app.use(express.json());
 
-// Health check route
-app.get('/health', (req, res) => {
-  res.json({ status: 'ok', version: 'v1.0.1-bypass-timeout', timestamp: new Date().toISOString() });
-});
-
-// Root path handler to satisfy default Railway deployment health check
-app.get('/', (req, res) => {
-  res.json({ status: 'ok', message: 'ReachInbox Backend Service API is running.' });
+// Universal health check routes for Railway and monitoring
+app.get(['/', '/health', '/api/health'], (req, res) => {
+  res.status(200).json({
+    status: 'ok',
+    service: 'ReachInbox Backend Service API',
+    version: '1.0.2',
+    port: PORT,
+    timestamp: new Date().toISOString(),
+  });
 });
 
 // Mount modular API routers
@@ -54,6 +43,7 @@ app.use('/api', apiRouter);
 // Global error handling middleware
 app.use(errorHandler);
 
-app.listen(Number(PORT), '0.0.0.0', () => {
+// Listen on all network interfaces (IPv4 & IPv6 dual-stack)
+app.listen(PORT, () => {
   logger.info(`Express server running on port ${PORT}`);
 });
